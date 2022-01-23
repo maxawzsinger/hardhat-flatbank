@@ -328,7 +328,7 @@ contract Moloch is ReentrancyGuard {
         }
 
         // collect tribute from proposer and store it in the Moloch until the proposal is processed
-        // require(IERC20(tributeToken).transferFrom(msg.sender, address(this), tributeOffered), "tribute token transfer failed"); //max take away..cost too much?
+        require(IERC20(tributeToken).transferFrom(msg.sender, address(this), tributeOffered), "tribute token transfer failed"); //max take away..cost too much?
         unsafeAddToBalance(ESCROW, tributeToken, tributeOffered);
 
         bool[6] memory flags; // [sponsored, processed, didPass, cancelled, whitelist, guildkick]
@@ -763,7 +763,7 @@ contract Moloch is ReentrancyGuard {
 
         proposal.flags[3] = true; // cancelled
 
-        // unsafeInternalTransfer(ESCROW, proposal.proposer, proposal.tributeToken, proposal.tributeOffered);
+        unsafeInternalTransfer(ESCROW, proposal.proposer, proposal.tributeToken, proposal.tributeOffered);
         emit CancelProposal(proposalId, msg.sender);
     }
 
