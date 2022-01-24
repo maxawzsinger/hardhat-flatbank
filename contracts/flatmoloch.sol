@@ -175,9 +175,13 @@ contract Moloch is ReentrancyGuard {
 
     uint256 public totalGuildBankTokens = 0; // total tokens with non-zero balance in guild bank
 
-    address public constant GUILD = address(0xdead);
+    /* address public constant GUILD = address(0xdead);
     address public constant ESCROW = address(0xbeef);
-    address public constant TOTAL = address(0xbabe);
+    address public constant TOTAL = address(0xbabe); */
+//these are hardhat network generated addresses seeded with 10k ETH.
+    address public constant GUILD = address(0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199);
+    address public constant ESCROW = address(0xdD2FD4581271e230360230F9337D5c0430Bf44C0);
+    address public constant TOTAL = address(0xbDA5747bFD65F08deb54cb465eB87D40e51B197E);
 
     mapping (address => mapping(address => uint256)) public userTokenBalances; // userTokenBalances[userAddress][tokenAddress]
 

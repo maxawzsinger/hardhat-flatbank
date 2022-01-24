@@ -1389,6 +1389,36 @@ describe("Proposal flow", function () {
 
     const summonedMoloch = new ethers.Contract(summonedAddress, molochABI, provider);
 
+    const tx = await summonedMoloch.connect(account).submitProposal(
+      '0x2546BcD3c84621e976D8185a91A922aE77ECEc30',
+      1,
+      0,
+      0,
+      deployedToken.address,
+      0,
+      deployedToken.address,
+      'test'
+    );
+
+    const receipt = await tx.wait();
+
+    // console.log(receipt);
+
+    const gasUsed = receipt.gasUsed;
+
+    console.log('gas:' ,gasUsed);
+
+
+
+    // address applicant,
+    // uint256 sharesRequested,
+    // uint256 lootRequested,
+    // uint256 tributeOffered,
+    // address tributeToken,
+    // uint256 paymentRequested,
+    // address paymentToken,
+    // string memory details
+
 
     //
     //
