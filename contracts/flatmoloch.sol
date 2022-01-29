@@ -917,6 +917,10 @@ contract MolochSummoner is CloneFactory {
     //NEW - for iterating over daos in frontend
     address[] public addressLUT; //lookuptable
 
+    mapping (address => string) public addressAliases; //people can elect to display a username instead of an address
+
+
+
 
     constructor(address _template) public {
         template = _template;
@@ -982,4 +986,12 @@ contract MolochSummoner is CloneFactory {
     return addressLUT.length;
     }
 
+    function getAddressAlias(address _address) public view returns (string) {
+      return addressAliases[_address]; //if doesn't exist, will return 0
+    }
+
+    function setAddressAlias(address _address, string _alias) public {
+      require(msg.sender == _address, "You are trying to set an alias for someone other than your account");
+      addressAliases[_address] = _alias;
+    }
 }
