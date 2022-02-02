@@ -986,11 +986,11 @@ contract MolochSummoner is CloneFactory {
     return addressLUT.length;
     }
 
-    function getAddressAlias(address _address) public view returns (string) {
+    function getAddressAlias(address _address) public view returns (string memory) {
       return addressAliases[_address]; //if doesn't exist, will return 0
     }
 
-    function setAddressAlias(address _address, string _alias) public {
+    function setAddressAlias(address _address, string memory _alias) public {
       require(msg.sender == _address, "You are trying to set an alias for someone other than your account");
       addressAliases[_address] = _alias;
     }
