@@ -1,4 +1,6 @@
 pragma solidity 0.5.3;
+import "hardhat/console.sol";
+
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -832,10 +834,15 @@ contract Moloch is ReentrancyGuard {
     }
 
     function checkMemberInDao(address _memberAddress) public view returns (bool) {
-        require(members[_memberAddress].exists, "member does not exist");
-        require((members[_memberAddress].shares > 0) || (members[_memberAddress].loot > 0),"no shares or loot");
-        return true;
+      /* require(_memberAddress != address(0x0000000000000000000000000000000000000001),"is 0 addy"); */
+      /* require(members[_memberAddress].shares > 0 || members[_memberAddress].loot > 0, "not a member"); */
+        return members[_memberAddress].exists;
     }
+
+    function checkShares(address _memberAddress) public view returns (uint256) {
+      return members[_memberAddress].shares;
+    }
+
 
     function getMemberCount() public view returns (uint256) {
         return memberList.length;

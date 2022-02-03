@@ -874,9 +874,7 @@ contract deployedmoloch is ReentrancyGuard {
     }
 
     function checkMemberInDao(address _memberAddress) public view returns (bool) {
-        require(members[_memberAddress].exists, "member does not exist");
-        require((members[_memberAddress].shares > 0) || (members[_memberAddress].loot > 0),"no shares or loot");
-        return true;
+        return (members[_memberAddress].shares > 0 || members[_memberAddress].loot > 0);
     }
 
     function getMemberCount() public view returns (uint256) {
