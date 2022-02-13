@@ -200,8 +200,6 @@ contract Moloch is ReentrancyGuard {
         bool exists; // always true once a member has been created
         uint256 highestIndexYesVote; // highest proposal index # on which the member voted YES
         uint256 jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
-        uint256 proposalsSubmittedInLastPeriod; //tracks how many proposals since last period change - MAX ADD
-        uint256 periodMemberLastSubmittedProposalIn; //for proposalsSubmittedInLastPeriod - tracks which period was "last" for the member - MAX ADD
     }
 
     struct Proposal {
@@ -231,6 +229,9 @@ contract Moloch is ReentrancyGuard {
 
     mapping(address => Member) public members;
     mapping(address => address) public memberAddressByDelegateKey;
+
+    mapping(address => uint256) public proposalsSubmittedInLastPeriod;
+    mapping(address => uint256) public periodMemberLastSubmittedProposalIn;
     address[] public memberList;
 
 
@@ -280,7 +281,7 @@ contract Moloch is ReentrancyGuard {
 
         for (uint256 i = 0; i < _summoner.length; i++) {
             require(_summoner[i] != address(0), "summoner cannot be 0");
-            members[_summoner[i]] = Member(_summoner[i], _summonerShares[i], 0, true, 0, 0, 0, 0);
+            members[_summoner[i]] = Member(_summoner[i], _summonerShares[i], 0, true, 0, 0);
             memberList.push(_summoner[i]);
             memberAddressByDelegateKey[_summoner[i]] = _summoner[i];
             totalShares = totalShares.add(_summonerShares[i]);
@@ -319,15 +320,13 @@ contract Moloch is ReentrancyGuard {
         address paymentToken,
         string memory details
     ) public nonReentrant returns (uint256 proposalId) {
-        require(members[msg.sender].exists, "proposer has never been a member"); //MAX ADDED TO GATE TO ONLY VOTING MEMBERS CAN SUBMIT
-        require(members[msg.sender].shares > 0, "proposer is not a voting member" ); //MAX ADDED TO GATE TO ONLY VOTING MEMBERS CAN SUBMIT
         require(sharesRequested.add(lootRequested) <= MAX_NUMBER_OF_SHARES_AND_LOOT, "too many shares requested");
         // require(tokenWhitelist[tributeToken], "tributeToken is not whitelisted");
         // require(tokenWhitelist[paymentToken], "payment is not whitelisted");
         require(applicant != address(0), "applicant cannot be 0");
         require(applicant != GUILD && applicant != ESCROW && applicant != TOTAL, "applicant address cannot be reserved");
         require(members[applicant].jailed == 0, "proposal applicant must not be jailed");
-        require(members[msg.sender].proposalsSubmittedInLastPeriod < 20, "proposer has proposed their current limit per period (20)"); //MAX ADDED TO GATE TO ONLY VOTING MEMBERS CAN SUBMIT
+        require(proposalsSubmittedInLastPeriod[msg.sender] < 20, "proposer has proposed their current limit per period (20)"); //MAX ADDED TO GATE TO ONLY VOTING MEMBERS CAN SUBMIT
 
         if (tributeOffered > 0 && userTokenBalances[GUILD][tributeToken] == 0) {
             require(totalGuildBankTokens < MAX_TOKEN_GUILDBANK_COUNT, 'cannot submit more tribute proposals for new tokens - guildbank is full');
@@ -341,11 +340,11 @@ contract Moloch is ReentrancyGuard {
 
         _submitProposal(applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken, details, flags);
 
-        if (members[msg.sender].periodMemberLastSubmittedProposalIn == getCurrentPeriod()) { //incremement count of proposals submitted for this period, for gating MAX ADD
-            members[msg.sender].proposalsSubmittedInLastPeriod += 1;
+        if (periodMemberLastSubmittedProposalIn[msg.sender] == getCurrentPeriod()) { //incremement count of proposals submitted for this period, for gating MAX ADD
+            proposalsSubmittedInLastPeriod[msg.sender] += 1;
         } else {
-            members[msg.sender].periodMemberLastSubmittedProposalIn = getCurrentPeriod(); //period has changed, reset count MAX ADD
-            members[msg.sender].proposalsSubmittedInLastPeriod = 1;
+            periodMemberLastSubmittedProposalIn[msg.sender] = getCurrentPeriod(); //period has changed, reset count MAX ADD
+            proposalsSubmittedInLastPeriod[msg.sender] = 1;
         }
 
         return proposalCount - 1; // return proposalId - contracts calling submit might want it
@@ -359,7 +358,7 @@ contract Moloch is ReentrancyGuard {
         bool[6] memory flags; // [sponsored, processed, didPass, cancelled, whitelist, guildkick]
         flags[4] = true; // whitelist
 
-        _submitProposal(address(0), 0, 0, 0, tokenToWhitelist, 0, address(0), details, flags); //last is status
+        _submitProposal(address(0), 0, 0, 0, tokenToWhitelist, 0, address(0), details, flags);
         return proposalCount - 1;
     }
 
@@ -548,7 +547,7 @@ contract Moloch is ReentrancyGuard {
                 }
 
                 // use applicant address as delegateKey by default
-                members[proposal.applicant] = Member(proposal.applicant, proposal.sharesRequested, proposal.lootRequested, true, 0, 0, 0, 0);
+                members[proposal.applicant] = Member(proposal.applicant, proposal.sharesRequested, proposal.lootRequested, true, 0, 0);
                 memberAddressByDelegateKey[proposal.applicant] = proposal.applicant;
                 memberList.push(proposal.applicant);
             }
@@ -569,6 +568,7 @@ contract Moloch is ReentrancyGuard {
             if (userTokenBalances[GUILD][proposal.paymentToken] == 0 && proposal.paymentRequested > 0) {
                 totalGuildBankTokens -= 1;
             }
+
 
         // PROPOSAL FAILED
         } else {
@@ -666,7 +666,7 @@ contract Moloch is ReentrancyGuard {
         require(proposalIndex < proposalQueue.length, "proposal does not exist");
         Proposal memory proposal = proposals[proposalQueue[proposalIndex]];
 
-        require(getCurrentPeriod() >= proposal.startingPeriod.add(votingPeriodLength).add(gracePeriodLength), "proposal is not ready to be processed");
+        /* require(getCurrentPeriod() >= proposal.startingPeriod.add(votingPeriodLength).add(gracePeriodLength), "proposal is not ready to be processed"); */
         require(proposal.flags[1] == false, "proposal has already been processed");
         require(proposalIndex == 0 || proposals[proposalQueue[proposalIndex.sub(1)]].flags[1], "previous proposal must be processed");
     }
@@ -834,13 +834,7 @@ contract Moloch is ReentrancyGuard {
     }
 
     function checkMemberInDao(address _memberAddress) public view returns (bool) {
-      /* require(_memberAddress != address(0x0000000000000000000000000000000000000001),"is 0 addy"); */
-      /* require(members[_memberAddress].shares > 0 || members[_memberAddress].loot > 0, "not a member"); */
         return members[_memberAddress].exists;
-    }
-
-    function checkShares(address _memberAddress) public view returns (uint256) {
-      return members[_memberAddress].shares;
     }
 
 
@@ -976,7 +970,7 @@ contract MolochSummoner is CloneFactory {
       ) public returns (bool) {
 
       moloch = Moloch(_daoAdress);
-      (,,,bool exists,,,,) = moloch.members(msg.sender);
+      (,,,bool exists,,) = moloch.members(msg.sender);
 
       require(exists == true, "must be a member");
       require(daos[_daoAdress] == false, "dao metadata already registered");

@@ -29,7 +29,7 @@ async function main () {
 
 
   await deployedSummonerContract.connect(account).summonMoloch(
-    [accountAddress], //list of members
+    [accountAddress,'0x70997970C51812dc3A010C7d01b50e0d17dc79C8'], //list of members
     [deployedToken.address],//list of approved tokens
     17280,//period duration (4.8hr in seconds)
     35, //voting period (7 days)
@@ -37,7 +37,7 @@ async function main () {
     0, //proposal deposit
     3,//dilution bound
     0,//processing reward.
-    [1] //summoner shares - to be same length as num of MEMBERS
+    [1,2] //summoner shares - to be same length as num of MEMBERS
   );
 
   //automatically adds to a lookup table
