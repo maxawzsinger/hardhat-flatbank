@@ -79,43 +79,11 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-library SafeMath {
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
 
-        uint256 c = a * b;
-        require(c / a == b);
-
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-
-        require(b > 0);
-        uint256 c = a / b;
-
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a);
-
-        return c;
-    }
-}
 
 contract Moloch is ReentrancyGuard {
-    using SafeMath for uint256;
+    /* using SafeMath for uint256; */
+    using MolochHelper for *;
     //UNSAFE!!! GET RID BEFORE PRODUCTION
     //FOR TEST PURPOSES - time acceleration
     uint256 public originalSummoningTime;//MAX ADD FOR TEST - time acceleration purposes (used to reset)... have also added set this at same time as summoningTime on init
@@ -442,7 +410,7 @@ contract Moloch is ReentrancyGuard {
         }
 
         // compute startingPeriod for proposal
-        uint256 startingPeriod = max(
+        uint256 startingPeriod = MolochHelper.max(
             getCurrentPeriod(),
             proposalQueue.length == 0 ? 0 : proposals[proposalQueue[proposalQueue.length.sub(1)]].startingPeriod
         ).add(1);
@@ -707,7 +675,7 @@ contract Moloch is ReentrancyGuard {
         totalLoot = totalLoot.sub(lootToBurn);
 
         for (uint256 i = 0; i < approvedTokens.length; i++) {
-            uint256 amountToRagequit = fairShare(userTokenBalances[GUILD][approvedTokens[i]], sharesAndLootToBurn, initialTotalSharesAndLoot);
+            uint256 amountToRagequit = MolochHelper.fairShare(userTokenBalances[GUILD][approvedTokens[i]], sharesAndLootToBurn, initialTotalSharesAndLoot);
             if (amountToRagequit > 0) { // gas optimization to allow a higher maximum token limit
                 // deliberately not using safemath here to keep overflows from preventing the function execution (which would break ragekicks)
                 // if a token overflows, it is because the supply was artificially inflated to oblivion, so we probably don't care about it anyways
@@ -811,9 +779,7 @@ contract Moloch is ReentrancyGuard {
     /***************
     GETTER FUNCTIONS
     ***************/
-    function max(uint256 x, uint256 y) internal pure returns (uint256) {
-        return x >= y ? x : y;
-    }
+
 
     function getCurrentPeriod() public view returns (uint256) {
         return now.sub(summoningTime).div(periodDuration);
@@ -868,19 +834,60 @@ contract Moloch is ReentrancyGuard {
         unsafeAddToBalance(to, token, amount);
     }
 
-    function fairShare(uint256 balance, uint256 shares, uint256 totalShares) internal pure returns (uint256) {
-        require(totalShares != 0);
 
-        if (balance == 0) { return 0; }
+}
 
-        uint256 prod = balance * shares;
+library MolochHelper {
+  function mul(uint256 a, uint256 b) external pure returns (uint256) {
+      if (a == 0) {
+          return 0;
+      }
 
-        if (prod / balance == shares) { // no overflow in multiplication above?
-            return prod / totalShares;
-        }
+      uint256 c = a * b;
+      require(c / a == b);
 
-        return (balance / totalShares) * shares;
-    }
+      return c;
+  }
+
+  function div(uint256 a, uint256 b) external pure returns (uint256) {
+
+      require(b > 0);
+      uint256 c = a / b;
+
+      return c;
+  }
+
+  function sub(uint256 a, uint256 b) external pure returns (uint256) {
+      require(b <= a);
+      uint256 c = a - b;
+
+      return c;
+  }
+
+  function add(uint256 a, uint256 b) external pure returns (uint256) {
+      uint256 c = a + b;
+      require(c >= a);
+
+      return c;
+  }
+
+  function fairShare(uint256 balance, uint256 shares, uint256 totalShares) external pure returns (uint256) {
+      require(totalShares != 0);
+
+      if (balance == 0) { return 0; }
+
+      uint256 prod = balance * shares;
+
+      if (prod / balance == shares) { // no overflow in multiplication above?
+          return prod / totalShares;
+      }
+
+      return (balance / totalShares) * shares;
+  }
+
+  function max(uint256 x, uint256 y) external pure returns (uint256) {
+      return x >= y ? x : y;
+  }
 }
 
 /*

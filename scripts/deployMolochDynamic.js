@@ -15,7 +15,17 @@ async function main () {
   await deployedToken.deployed();
   console.log('token address: ',deployedToken.address);
 
-  const molochContract = await ethers.getContractFactory("contracts/flatmoloch.sol:Moloch");
+  const molochHelper = await ethers.getContractFactory("contracts/flatmoloch.sol:MolochHelper");
+  const deployedHelper = await molochHelper.deploy();
+  await deployedHelper.deployed();
+
+
+
+  const molochContract = await ethers.getContractFactory("contracts/flatmoloch.sol:Moloch", {
+    libraries : {
+        MolochHelper : deployedHelper.address,
+    },
+  });
   const deployedMolochContract = await molochContract.deploy();
   await deployedMolochContract.deployed();
   console.log('deployed moloch template at : ', deployedMolochContract.address);
