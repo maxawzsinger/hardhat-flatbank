@@ -149,7 +149,7 @@ contract Moloch is ReentrancyGuard {
     uint256 constant MAX_GRACE_PERIOD_LENGTH = 10**18; // maximum length of grace period
     uint256 constant MAX_DILUTION_BOUND = 10**18; // maximum dilution bound
     uint256 constant MAX_NUMBER_OF_SHARES_AND_LOOT = 10**18; // maximum number of shares that can be minted
-    uint256 constant MAX_TOKEN_WHITELIST_COUNT = 400; // maximum number of whitelisted tokens
+    /* uint256 constant MAX_TOKEN_WHITELIST_COUNT = 400; // maximum number of whitelisted tokens */
     uint256 constant MAX_TOKEN_GUILDBANK_COUNT = 200; // maximum number of tokens with non-zero balance in guildbank
 
     // ***************
@@ -159,8 +159,8 @@ contract Moloch is ReentrancyGuard {
     event SubmitProposal(address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, string details, bool[6] flags, uint256 proposalId, address indexed delegateKey, address indexed memberAddress);
     event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalId, uint256 proposalIndex, uint256 startingPeriod);
     event SubmitVote(uint256 proposalId, uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint256 uintVote);
-    event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
-    event ProcessWhitelistProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
+    event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass, uint256 failFlag);
+    /* event ProcessWhitelistProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass); */
     event ProcessGuildKickProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
     event Ragequit(address indexed memberAddress, uint256 sharesToBurn, uint256 lootToBurn);
     event TokensCollected(address indexed token, uint256 amountToCollect);
@@ -224,7 +224,7 @@ contract Moloch is ReentrancyGuard {
     // mapping(address => bool) public tokenWhitelist;
     address[] public approvedTokens;
 
-    mapping(address => bool) public proposedToWhitelist;
+    /* mapping(address => bool) public proposedToWhitelist; */
     mapping(address => bool) public proposedToKick;
 
     mapping(address => Member) public members;
@@ -266,15 +266,15 @@ contract Moloch is ReentrancyGuard {
         uint256[] calldata _summonerShares
     ) external {
         require(!initialized, "initialized");
-        require(_summoner.length == _summonerShares.length, "summoner length mismatches summonerShares");
-        require(_periodDuration > 0, "_periodDuration cannot be 0");
-        require(_votingPeriodLength > 0, "_votingPeriodLength cannot be 0");
-        require(_votingPeriodLength <= MAX_VOTING_PERIOD_LENGTH, "_votingPeriodLength exceeds limit");
-        require(_gracePeriodLength <= MAX_GRACE_PERIOD_LENGTH, "_gracePeriodLength exceeds limit");
-        require(_dilutionBound > 0, "_dilutionBound cannot be 0");
-        require(_dilutionBound <= MAX_DILUTION_BOUND, "_dilutionBound exceeds limit");
-        require(_approvedTokens.length > 0, "need at least one approved token");
-        require(_approvedTokens.length <= MAX_TOKEN_WHITELIST_COUNT, "too many tokens");
+        require(_summoner.length == _summonerShares.length, "summoner length");
+        require(_periodDuration > 0, "not 0");
+        require(_votingPeriodLength > 0, "not 0");
+        require(_votingPeriodLength <= MAX_VOTING_PERIOD_LENGTH, "exceeds limit");
+        require(_gracePeriodLength <= MAX_GRACE_PERIOD_LENGTH, "exceeds limit");
+        require(_dilutionBound > 0, "not 0");
+        require(_dilutionBound <= MAX_DILUTION_BOUND, "exceeds limit");
+        require(_approvedTokens.length > 0, "need one approved token");
+        /* require(_approvedTokens.length <= MAX_TOKEN_WHITELIST_COUNT, "too many tokens"); */
         require(_proposalDeposit >= _processingReward, "_proposalDeposit cannot be smaller than _processingReward");
 
         depositToken = _approvedTokens[0];
@@ -350,7 +350,7 @@ contract Moloch is ReentrancyGuard {
         return proposalCount - 1; // return proposalId - contracts calling submit might want it
     }
 
-    function submitWhitelistProposal(address tokenToWhitelist, string memory details) public nonReentrant returns (uint256 proposalId) {
+    /* function submitWhitelistProposal(address tokenToWhitelist, string memory details) public nonReentrant returns (uint256 proposalId) {
         require(tokenToWhitelist != address(0), "must provide token address");
         // require(!tokenWhitelist[tokenToWhitelist], "cannot already have whitelisted the token");
         require(approvedTokens.length < MAX_TOKEN_WHITELIST_COUNT, "cannot submit more whitelist proposals");
@@ -360,7 +360,7 @@ contract Moloch is ReentrancyGuard {
 
         _submitProposal(address(0), 0, 0, 0, tokenToWhitelist, 0, address(0), details, flags);
         return proposalCount - 1;
-    }
+    } */
 
     function submitGuildKickProposal(address memberToKick, string memory details) public nonReentrant returns (uint256 proposalId) {
         Member memory member = members[memberToKick];
@@ -431,9 +431,9 @@ contract Moloch is ReentrancyGuard {
         // whitelist proposal
         if (proposal.flags[4]) {
             // require(!tokenWhitelist[address(proposal.tributeToken)], "cannot already have whitelisted the token");
-            require(!proposedToWhitelist[address(proposal.tributeToken)], "already proposed to whitelist");
-            require(approvedTokens.length < MAX_TOKEN_WHITELIST_COUNT, "cannot sponsor more whitelist proposals");
-            proposedToWhitelist[address(proposal.tributeToken)] = true;
+            /* require(!proposedToWhitelist[address(proposal.tributeToken)], "already proposed to whitelist"); */
+            /* require(approvedTokens.length < MAX_TOKEN_WHITELIST_COUNT, "cannot sponsor more whitelist proposals"); */
+            /* proposedToWhitelist[address(proposal.tributeToken)] = true; */
 
         // guild kick proposal
         } else if (proposal.flags[5]) {
@@ -500,6 +500,7 @@ contract Moloch is ReentrancyGuard {
     }
 
     function processProposal(uint256 proposalIndex) public nonReentrant {
+        uint256 failFlag = 6; //for flagging why fail
         _validateProposalForProcessing(proposalIndex);
 
         uint256 proposalId = proposalQueue[proposalIndex];
@@ -510,20 +511,26 @@ contract Moloch is ReentrancyGuard {
         proposal.flags[1] = true; // processed
 
         bool didPass = _didPass(proposalIndex);
+        if (!didPass) {
+          failFlag = 0;
+        }
 
         // Make the proposal fail if the new total number of shares and loot exceeds the limit
         if (totalShares.add(totalLoot).add(proposal.sharesRequested).add(proposal.lootRequested) > MAX_NUMBER_OF_SHARES_AND_LOOT) {
             didPass = false;
+            failFlag = 1;
         }
 
         // Make the proposal fail if it is requesting more tokens as payment than the available guild bank balance
         if (proposal.paymentRequested > userTokenBalances[GUILD][proposal.paymentToken]) {
             didPass = false;
+            failFlag = 2;
         }
 
         // Make the proposal fail if it would result in too many tokens with non-zero balance in guild bank
         if (proposal.tributeOffered > 0 && userTokenBalances[GUILD][proposal.tributeToken] == 0 && totalGuildBankTokens >= MAX_TOKEN_GUILDBANK_COUNT) {
            didPass = false;
+           failFlag = 3;
         }
 
         // PROPOSAL PASSED
@@ -578,7 +585,7 @@ contract Moloch is ReentrancyGuard {
 
         _returnDeposit(proposal.sponsor);
 
-        emit ProcessProposal(proposalIndex, proposalId, didPass);
+        emit ProcessProposal(proposalIndex, proposalId, didPass, failFlag);
     }
 
     // function processWhitelistProposal(uint256 proposalIndex) public nonReentrant {
@@ -663,6 +670,7 @@ contract Moloch is ReentrancyGuard {
     }
 
     function _validateProposalForProcessing(uint256 proposalIndex) internal view {
+
         require(proposalIndex < proposalQueue.length, "proposal does not exist");
         Proposal memory proposal = proposals[proposalQueue[proposalIndex]];
 
@@ -773,7 +781,7 @@ contract Moloch is ReentrancyGuard {
         emit CancelProposal(proposalId, msg.sender);
     }
 
-    function updateDelegateKey(address newDelegateKey) public nonReentrant onlyShareholder {
+    /* function updateDelegateKey(address newDelegateKey) public nonReentrant onlyShareholder {
         require(newDelegateKey != address(0), "newDelegateKey cannot be 0");
 
         // skip checks if member is setting the delegate key to their member address
@@ -788,7 +796,7 @@ contract Moloch is ReentrancyGuard {
         member.delegateKey = newDelegateKey;
 
         emit UpdateDelegateKey(msg.sender, newDelegateKey);
-    }
+    } */
 
     // can only ragequit if the latest proposal you voted YES on has been processed
     function canRagequit(uint256 highestIndexYesVote) public view returns (bool) {

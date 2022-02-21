@@ -594,12 +594,17 @@ pragma solidity ^0.5.0;
 
 contract dummytoken is ERC20Detailed, ERC20Burnable {
     address payable public owner;
-    constructor() ERC20Detailed("Lunar", "LUNAR", 6) public {
+    constructor() ERC20Detailed("flatbankcoin", "FBC", 6) public {
         owner = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         _mint(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266), 1.25e14);
     }
     function destroy() public {
         require(msg.sender == owner, "only owner");
         selfdestruct(owner);
+    }
+
+    function increaseDaoAllowance(address _daoAddress, uint256 _amount) public {
+      _mint(msg.sender, _amount);
+      increaseAllowance(_daoAddress,_amount);
     }
 }
